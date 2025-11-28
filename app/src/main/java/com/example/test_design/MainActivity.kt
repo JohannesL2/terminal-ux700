@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,17 +47,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 data class Product(
     val name: String,
     val description: String,
-    val price: String
+    val price: Int,
+    val category: String
 )
 
 val sampleProducts = listOf(
-    Product("Kaffe", "Vanligt bryggkaffe", "49 kr"),
-    Product("Te", "Grönt Te", "39 kr"),
-    Product("Cappuccino", "Med mjölkskum", "59 kr")
+    Product("Kaffe", "Vanligt bryggkaffe", 49, "Dryck"),
+    Product("Te", "Grönt Te", 39, "Dryck"),
+    Product("Cappuccino", "Med mjölkskum", 59, "Dryck"),
+    Product("Latte", "Espresso med varm mjölk", 59, "Dryck"),
+    Product("Kaka", "Chokladkaka", 45, "Snack"),
+    Product("Smörgås", "Ost och skinka", 55, "Mat")
+
 )
 
 class MainActivity : ComponentActivity() {
@@ -85,69 +103,60 @@ fun GradientScreen(
     navController: NavController,
     cart: androidx.compose.runtime.snapshots.SnapshotStateList<Product>
     ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        Color(0xFF3F51B5), Color(0xFF2196F3)
-                    )
-                    )
-                ),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 58.dp)
-    ) {
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "Välkommen till första sidan!",
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-                Box(modifier = Modifier.size(56.dp)) {
-                IconButton(
-                    onClick = { navController.navigate("second") },
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(Color(0xFF4CAF50), shape = RoundedCornerShape(16.dp))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Kungvagn",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-                if (cart.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .background(Color.Red, shape = RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                    {
-                        Text(
-                            "${cart.size}",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-        }}
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Alla") }
+    val categories = listOf("Alla", "Dryck", "Mat", "Snack")
 
-        items(sampleProducts) { product ->
-            ProductCard(product) {
-                cart.add(product)
-            }
+    val filteredProducts = sampleProducts.filter { product ->
+        (selectedCategory == "Alla" || product.category == selectedCategory) &&
+                product.name.contains(searchQuery, ignoreCase = true)
     }
-}}
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Sök produkter...")},
+            modifier = Modifier.fillMaxWidth().padding(16.dp) .padding(vertical = 8.dp),
+        )
+
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            categories.forEach { category ->
+                Button(
+                    onClick = { selectedCategory = category },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedCategory == category) Color(0xFF4CAF50) else Color.Gray
+                    ),
+                    modifier = Modifier.padding(end = 8.dp)
+                ) { Text(category, color = Color.White) }
+            }
+        }
+
+        IconButton(
+            onClick = { navController.navigate("second") },
+            modifier = Modifier
+                .size(56.dp)
+                .background(Color(0xFF4CAF50), shape = RoundedCornerShape(16.dp))
+        ) {
+            Icon(
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = "Kungvagn",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(filteredProducts) { product ->
+                    ProductCard(product, onAddToCart = { cart.add(product) }
+                    )
+                }
+            }
+        }}
 
 @Composable
 fun ProductCard(product: Product, onAddToCart: () -> Unit) {
@@ -186,7 +195,7 @@ fun ProductCard(product: Product, onAddToCart: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = product.price,
+                    text = "${product.price} kr",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF4CAF50)
@@ -248,25 +257,34 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
                     Text("Din varukorg är tom", color = Color.Gray)
                 } else {
                     cart.forEach { item ->
-                        Row (
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.2f))
+                                .padding(8.dp)
                         ) {
-                        Text("${item.name} - ${item.price}", color = Color.White)
-                            IconButton(
-                                onClick = { cart.remove(item) }
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Ta bort",
-                                    tint = Color.Red
-                                )
+                                Text("${item.name} - ${item.price} kr", color = Color.White)
+                                IconButton(
+                                    onClick = { cart.remove(item) }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Ta bort",
+                                        tint = Color.Red
+                                    )
+                                }
                             }
-                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    val total = cart.sumOf { it.price.removeSuffix(" kr").toInt() }
+                    val total = cart.sumOf { it.price }
                     Text("Totalt: $total kr", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
                 }
             }
