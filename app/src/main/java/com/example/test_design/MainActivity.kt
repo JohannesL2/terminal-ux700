@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -58,6 +57,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 
 data class Product(
     val name: String,
@@ -95,9 +95,9 @@ class MainActivity : ComponentActivity() {
                     composable("pinScreen") {
                         PinScreen(
                             navController = navController,
-                            onPinEntered = { pin ->
-                            println("PIN: $pin")
-                        })
+                            cart = cart,
+                            onPinEntered = { pin -> println("PIN: $pin") }
+                        )
                     }
                 }
             }
@@ -118,10 +118,15 @@ fun GradientScreen(
         (selectedCategory == "Alla" || product.category == selectedCategory) &&
                 (searchQuery.isBlank() || product.name.contains(searchQuery, ignoreCase = true))
     }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp) .background(
+        Brush.linearGradient(
+            listOf(
+                Color(0xFFD77575), Color(0xFFFA2F87)
+            )
+        )
+    ),) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
@@ -138,7 +143,7 @@ fun GradientScreen(
                 onClick = { navController.navigate("second") },
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFF4CAF50), shape = RoundedCornerShape(16.dp))
+                    .background(Color(0xFF4CAF50))
             ) {
                 Icon(
                     imageVector = Icons.Default.ShoppingCart,
@@ -150,19 +155,23 @@ fun GradientScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
+        Box(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentAlignment = Alignment.Center
         ) {
-            categories.forEach { category ->
-                Button(
-                    onClick = { selectedCategory = category },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedCategory == category) Color(0xFF4CAF50) else Color.Gray
-                    )
-                ) {
-                    Text(category, color = Color.White)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                categories.forEach { category ->
+                    Button(
+                        onClick = { selectedCategory = category },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (selectedCategory == category) Color(0xFF4CAF50) else Color.Gray
+                        )
+                    ) {
+                        Text(category, color = Color.White)
+                    }
                 }
             }
         }
@@ -183,55 +192,61 @@ fun GradientScreen(
 
 @Composable
 fun ProductCard(product: Product, onAddToCart: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2F)),
-        modifier = Modifier
-            .fillMaxWidth(0.9f)
-            .height(140.dp)
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp))
-    {
-        Column(
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2F)),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = product.name,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Text(
-                text = product.description,
-                fontSize = 14.sp,
-                color = Color(0xFFCCCCCC),
-                maxLines = 2
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth(0.9f)
+                .height(140.dp)
+                .padding(vertical = 8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        )
+        {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${product.price} kr",
-                    fontSize = 18.sp,
+                    text = product.name,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4CAF50)
+                    color = Color.White
                 )
 
-                androidx.compose.material3.Button(
-                    onClick = onAddToCart,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                Text(
+                    text = product.description,
+                    fontSize = 14.sp,
+                    color = Color(0xFFCCCCCC),
+                    maxLines = 2
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Lägg till i varukorgen",
-                        color = Color.White
+                        text = "${product.price} kr",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4CAF50)
                     )
+
+                    androidx.compose.material3.Button(
+                        onClick = onAddToCart,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    ) {
+                        Text(
+                            text = "Lägg till i varukorgen",
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -261,11 +276,11 @@ fun SecondScreen(
             CartSummary(cart)
             Spacer(modifier = Modifier.height(32.dp))
             androidx.compose.material3.Button(
-                onClick = { navController.navigate("main") }
-            ) { Text(text = "Tillbaka", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
-            androidx.compose.material3.Button(
                 onClick = { navController.navigate("pinScreen") }
             ) { Text(text = "Betala med kort", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+            androidx.compose.material3.Button(
+                onClick = { navController.navigate("main") }
+            ) { Text(text = "Tillbaka", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
         }}}
 
 @Composable
@@ -331,9 +346,12 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
 @Composable
 fun PinScreen(
     navController: NavController,
+    cart: SnapshotStateList<Product>,
     onPinEntered: (String) -> Unit
 ) {
     var pin by remember { mutableStateOf("") }
+
+    val total = cart.sumOf { it.price }
 
     Column(
         modifier = Modifier
@@ -343,6 +361,15 @@ fun PinScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Text(
+            text = "Totalt: $total kr",
+            fontSize = 38.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
         Text(
             text = "*".repeat(pin.length),
             fontSize = 40.sp,
@@ -382,7 +409,7 @@ fun PinScreen(
             }
         }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                     onClick = { navController.navigate("second") },
