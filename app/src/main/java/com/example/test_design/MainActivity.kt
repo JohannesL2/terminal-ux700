@@ -71,7 +71,7 @@ val sampleProducts = listOf(
     Product("Te", "Grönt Te", 39, "Dryck"),
     Product("Cappuccino", "Med mjölkskum", 59, "Dryck"),
     Product("Latte", "Espresso med varm mjölk", 59, "Dryck"),
-    Product("Kaka", "Chokladkaka", 45, "Snack"),
+    Product("Kaka", "Chokladkaka", 45, "Snacks"),
     Product("Smörgås", "Ost och skinka", 55, "Mat")
 
 )
@@ -92,6 +92,13 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable("main") { GradientScreen(navController, cart) }
                     composable("second") {SecondScreen(navController, cart) }
+                    composable("pinScreen") {
+                        PinScreen(
+                            navController = navController,
+                            onPinEntered = { pin ->
+                            println("PIN: $pin")
+                        })
+                    }
                 }
             }
         }
@@ -105,58 +112,74 @@ fun GradientScreen(
     ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Alla") }
-    val categories = listOf("Alla", "Dryck", "Mat", "Snack")
+    val categories = listOf("Alla", "Dryck", "Mat", "Snacks")
 
     val filteredProducts = sampleProducts.filter { product ->
         (selectedCategory == "Alla" || product.category == selectedCategory) &&
-                product.name.contains(searchQuery, ignoreCase = true)
+                (searchQuery.isBlank() || product.name.contains(searchQuery, ignoreCase = true))
     }
+    Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Sök produkter...") },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+            )
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            label = { Text("Sök produkter...")},
-            modifier = Modifier.fillMaxWidth().padding(16.dp) .padding(vertical = 8.dp),
-        )
+            IconButton(
+                onClick = { navController.navigate("second") },
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF4CAF50), shape = RoundedCornerShape(16.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = "Kundvagn",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
 
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             categories.forEach { category ->
                 Button(
                     onClick = { selectedCategory = category },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedCategory == category) Color(0xFF4CAF50) else Color.Gray
-                    ),
-                    modifier = Modifier.padding(end = 8.dp)
-                ) { Text(category, color = Color.White) }
-            }
-        }
-
-        IconButton(
-            onClick = { navController.navigate("second") },
-            modifier = Modifier
-                .size(56.dp)
-                .background(Color(0xFF4CAF50), shape = RoundedCornerShape(16.dp))
-        ) {
-            Icon(
-                imageVector = Icons.Default.ShoppingCart,
-                contentDescription = "Kungvagn",
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredProducts) { product ->
-                    ProductCard(product, onAddToCart = { cart.add(product) }
                     )
+                ) {
+                    Text(category, color = Color.White)
                 }
             }
-        }}
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(filteredProducts) { product ->
+                ProductCard(product) { cart.add(product) }
+            }
+        }
+    }
+}
 
 @Composable
 fun ProductCard(product: Product, onAddToCart: () -> Unit) {
@@ -240,6 +263,9 @@ fun SecondScreen(
             androidx.compose.material3.Button(
                 onClick = { navController.navigate("main") }
             ) { Text(text = "Tillbaka", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+            androidx.compose.material3.Button(
+                onClick = { navController.navigate("pinScreen") }
+            ) { Text(text = "Betala med kort", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
         }}}
 
 @Composable
@@ -247,7 +273,9 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C3C)),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(450.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -256,29 +284,37 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
                 if (cart.isEmpty()) {
                     Text("Din varukorg är tom", color = Color.Gray)
                 } else {
-                    cart.forEach { item ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.2f))
-                                .padding(8.dp)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(cart) { item ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.2f))
+                                    .padding(8.dp)
                             ) {
-                                Text("${item.name} - ${item.price} kr", color = Color.White)
-                                IconButton(
-                                    onClick = { cart.remove(item) }
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Ta bort",
-                                        tint = Color.Red
-                                    )
+                                    Text("${item.name} - ${item.price} kr", color = Color.White)
+                                    IconButton(
+                                        onClick = { cart.remove(item) }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Ta bort",
+                                            tint = Color.Red
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -289,4 +325,73 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
                 }
             }
         }
+}
+
+
+@Composable
+fun PinScreen(
+    navController: NavController,
+    onPinEntered: (String) -> Unit
+) {
+    var pin by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1E1E2F))
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "*".repeat(pin.length),
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        val buttons = listOf(
+            listOf("1", "2", "3"),
+            listOf("4", "5", "6"),
+            listOf("7", "8", "9"),
+            listOf("⌫", "0", "OK")
+        )
+
+        buttons.forEach { row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                row.forEach { label ->
+                    Button(
+                        onClick = {
+                            when (label) {
+                                "⌫" -> if (pin.isNotEmpty()) pin = pin.dropLast(1)
+                                "OK" -> if (pin.length == 4) onPinEntered(pin)
+                                else -> if (pin.length < 4) pin += label
+                            }
+                        },
+                        modifier = Modifier.size(80.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    ) {
+                        Text(label, fontSize = 24.sp, color = Color.White)
+                    }
+                }
+            }
+        }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = { navController.navigate("second") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text(
+                        text = "Avbryt köp",
+                        color = Color.White
+                    )
+                }
+    }
 }
