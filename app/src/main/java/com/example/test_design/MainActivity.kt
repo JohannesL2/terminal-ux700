@@ -59,9 +59,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import org.w3c.dom.Text
 
 data class Product(
     val name: String,
@@ -307,6 +310,53 @@ fun SecondScreen(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Varukorg", color = Color.White, fontSize = 26.sp)
+            Spacer(modifier = Modifier.height(32.dp))
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Lägg till ny produkt",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            var newProductName by remember { mutableStateOf("") }
+            var newProductPrice by remember { mutableStateOf("") }
+
+            TextField(
+                value = newProductName,
+                onValueChange = { newProductName = it },
+                label = { Text("Produktnamn") },
+                modifier = Modifier
+                    .weight(2f)
+                    .height(56.dp)
+            )
+
+            TextField(
+                value = newProductPrice,
+                onValueChange = {
+                    newProductPrice = it.filter { c -> c.isDigit() }
+                }, // bara siffror
+                label = { Text("Pris") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+            )
+        }
+    }
+
             Spacer(modifier = Modifier.height(32.dp))
             CartSummary(cart)
             Spacer(modifier = Modifier.height(32.dp))
