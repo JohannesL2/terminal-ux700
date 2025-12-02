@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp") version "2.2.10-2.0.2" // Kotlin processor
+    // för att Room och Dagger ska kunna köra sina kompilatorer
 }
 
 android {
@@ -58,4 +60,18 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.navigation:navigation-compose:2.7.0")
+
+    implementation("com.google.dagger:dagger-compiler:2.51.1")
+    ksp("com.google.dagger:dagger-compiler:2.51.1")
+
+    //Room core, det är en utbyggnad av SQLite som är en
+    // prestandavänlig offline databas som finns inbyggd i android.
+    // Vi behöver alltså inte installera SQLite, bara Room.
+
+    val room_version = "2.8.4" // Ändra i efterhand om uppdateringar kommer
+
+    implementation("androidx.room:room-runtime:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+
+    implementation ("androidx.room:room-ktx:$room_version")
 }

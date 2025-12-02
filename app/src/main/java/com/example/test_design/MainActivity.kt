@@ -46,8 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextField
@@ -58,12 +58,24 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import org.w3c.dom.Text
 
 data class Product(
     val name: String,
     val description: String,
     val price: Int,
     val category: String
+)
+
+data class CartItem(
+    val product: Product,
+    var quantity: Int
 )
 
 val sampleProducts = listOf(
@@ -84,19 +96,21 @@ class MainActivity : ComponentActivity() {
             TestdesignTheme {
                 val navController = rememberNavController()
 
-                val cart = remember { mutableStateListOf<Product>() }
+                val cart = remember { mutableStateListOf<CartItem>() }
 
                 NavHost(
                     navController = navController,
                     startDestination = "main"
                 ) {
                     composable("main") { GradientScreen(navController, cart) }
-                    composable("second") {SecondScreen(navController, cart) }
+                    composable("second") { SecondScreen(navController, cart) }
                     composable("pinScreen") {
                         PinScreen(
                             navController = navController,
                             cart = cart,
-                            onPinEntered = { pin -> println("PIN: $pin") }
+                            onPinEntered = { pin ->
+                                println("PIN: $pin")
+                            }
                         )
                     }
                 }
@@ -108,7 +122,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GradientScreen(
     navController: NavController,
-    cart: androidx.compose.runtime.snapshots.SnapshotStateList<Product>
+    cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartItem>
     ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Alla") }
@@ -121,8 +135,12 @@ fun GradientScreen(
     Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp) .background(
         Brush.linearGradient(
             listOf(
-                Color(0xFFD77575), Color(0xFFFA2F87)
-            )
+                Color(0xFF000000),
+                Color(0xFF111111),
+                Color(0xFF222222)
+            ),
+            start = Offset(0f, 0f),
+            end = Offset(0f, Float.POSITIVE_INFINITY)
         )
     ),) {
         Row(
@@ -133,10 +151,12 @@ fun GradientScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Sök produkter...") },
+                placeholder = { Text ("Sök produkter...", color = Color.Gray) },
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(0.dp)
             )
 
             IconButton(
@@ -159,16 +179,18 @@ fun GradientScreen(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            Row(
+            LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                categories.forEach { category ->
+                 items(categories) {category ->
                     Button(
                         onClick = { selectedCategory = category },
+                        shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (selectedCategory == category) Color(0xFF4CAF50) else Color.Gray
-                        )
+                        ),
+                        modifier = Modifier.height(40.dp)
                     ) {
                         Text(category, color = Color.White)
                     }
@@ -184,26 +206,31 @@ fun GradientScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(filteredProducts) { product ->
-                ProductCard(product) { cart.add(product) }
+                ProductCard(product, cart) }
             }
         }
     }
-}
 
 @Composable
-fun ProductCard(product: Product, onAddToCart: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
+fun ProductCard(product: Product, cart: SnapshotStateList<CartItem>) {
+    val onAddToCart: () -> Unit = {
+        val index = cart.indexOfFirst { it.product.name == product.name }
+        if (index >= 0) {
+            val item = cart[index]
+            cart[index] = item.copy(quantity = item.quantity + 1)
+        } else {
+            cart.add(CartItem(product, 1))
+        }
+    }
+
         Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2F)),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1B1F)),
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .height(140.dp)
+                .fillMaxWidth()
+                .height(170.dp)
                 .padding(vertical = 8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         )
         {
             Column(
@@ -214,7 +241,7 @@ fun ProductCard(product: Product, onAddToCart: () -> Unit) {
             ) {
                 Text(
                     text = product.name,
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
@@ -238,25 +265,32 @@ fun ProductCard(product: Product, onAddToCart: () -> Unit) {
                         color = Color(0xFF4CAF50)
                     )
 
-                    androidx.compose.material3.Button(
+                    Button(
                         onClick = onAddToCart,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 12.dp
+                        )
                     ) {
                         Text(
                             text = "Lägg till i varukorgen",
-                            color = Color.White
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
             }
         }
     }
-}
 
 @Composable
 fun SecondScreen(
     navController: NavController,
-    cart: androidx.compose.runtime.snapshots.SnapshotStateList<Product>
+    cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartItem>
     ) {
     Box(
         modifier = Modifier
@@ -264,40 +298,103 @@ fun SecondScreen(
             .background(
                 Brush.linearGradient(
                     listOf(
-                        Color(0xFFD77575), Color(0xFFFA2F87)
-                    )
+                        Color(0xFF000000),
+                        Color(0xFF111111),
+                        Color(0xFF222222)
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(0f, Float.POSITIVE_INFINITY)
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Din varukorg", color = Color.White, fontSize = 26.sp)
+            Text("Varukorg", color = Color.White, fontSize = 26.sp)
+            Spacer(modifier = Modifier.height(32.dp))
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Lägg till ny produkt",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            var newProductName by remember { mutableStateOf("") }
+            var newProductPrice by remember { mutableStateOf("") }
+
+            TextField(
+                value = newProductName,
+                onValueChange = { newProductName = it },
+                label = { Text("Produktnamn") },
+                modifier = Modifier
+                    .weight(2f)
+                    .height(56.dp)
+            )
+
+            TextField(
+                value = newProductPrice,
+                onValueChange = {
+                    newProductPrice = it.filter { c -> c.isDigit() }
+                }, // bara siffror
+                label = { Text("Pris") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+            )
+        }
+    }
+
             Spacer(modifier = Modifier.height(32.dp))
             CartSummary(cart)
             Spacer(modifier = Modifier.height(32.dp))
-            androidx.compose.material3.Button(
-                onClick = { navController.navigate("pinScreen") }
+            Button(
+                onClick = { navController.navigate("pinScreen") },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (cart.isNotEmpty()) Color(0xFF1976D2) else Color.Gray),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(60.dp),
+                enabled = cart.isNotEmpty()
             ) { Text(text = "Betala med kort", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
-            androidx.compose.material3.Button(
-                onClick = { navController.navigate("main") }
-            ) { Text(text = "Tillbaka", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate("main") },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF757575)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(50.dp)
+            ) { Text(text = "Gå tillbaka", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
         }}}
 
 @Composable
-fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Product>) {
+fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartItem>) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C3C)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF33353B)),
         modifier = Modifier
             .fillMaxWidth()
-            .height(450.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            .height(450.dp)
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Varukorg", fontSize = 20.sp, color = Color.White)
-                Spacer(modifier = Modifier.height(8.dp))
                 if (cart.isEmpty()) {
-                    Text("Din varukorg är tom", color = Color.Gray)
+                    Text("Din varukorg är tom", color = Color.Gray, fontSize = 16.sp)
                 } else {
 
                     LazyColumn(
@@ -320,9 +417,15 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("${item.name} - ${item.price} kr", color = Color.White)
+                                    Text("${item.product.name} x${item.quantity} - ${item.product.price * item.quantity} kr", color = Color.White)
                                     IconButton(
-                                        onClick = { cart.remove(item) }
+                                        onClick = {
+                                            val index = cart.indexOf(item)
+                                            if (item.quantity > 1) {
+                                                cart[index] = item.copy(quantity = item.quantity - 1)
+                                            } else {
+                                                cart.remove(item)}
+                                        }
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
@@ -335,7 +438,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    val total = cart.sumOf { it.price }
+                    val total = cart.sumOf { it.product.price * it.quantity }
                     Text("Totalt: $total kr", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
                 }
             }
@@ -346,12 +449,12 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<Produ
 @Composable
 fun PinScreen(
     navController: NavController,
-    cart: SnapshotStateList<Product>,
+    cart: SnapshotStateList<CartItem>,
     onPinEntered: (String) -> Unit
 ) {
     var pin by remember { mutableStateOf("") }
 
-    val total = cart.sumOf { it.price }
+    val total = cart.sumOf { it.product.price * it.quantity }
 
     Column(
         modifier = Modifier
@@ -392,33 +495,54 @@ fun PinScreen(
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
                 row.forEach { label ->
-                    Button(
-                        onClick = {
-                            when (label) {
-                                "⌫" -> if (pin.isNotEmpty()) pin = pin.dropLast(1)
-                                "OK" -> if (pin.length == 4) onPinEntered(pin)
-                                else -> if (pin.length < 4) pin += label
-                            }
-                        },
-                        modifier = Modifier.size(80.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                    ) {
-                        Text(label, fontSize = 24.sp, color = Color.White)
+                    val isOk = label == "OK"
+                    val isEnabled = !isOk || pin.length == 4
+
+                    val buttonColor = when (label) {
+                        "OK" -> Color(0xFF4CAF50)
+                        "⌫" -> Color(0xFF757575)
+                        else -> Color(0xFF2E7D32)
+                    }
+
+                        Button(
+                            onClick = {
+                                when {
+                                    label == "⌫" && pin.isNotEmpty() -> pin = pin.dropLast(1)
+                                    label == "OK" && pin.length == 4 -> onPinEntered(pin)
+                                    label != "⌫" && label != "OK" && pin.length < 4 -> pin += label
+                                }
+                            },
+                            modifier = Modifier.size(80.dp),
+                            enabled = isEnabled,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isEnabled) buttonColor else Color.DarkGray,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
-        }
-
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                     onClick = { navController.navigate("second") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(60.dp)
                 ) {
                     Text(
                         text = "Avbryt köp",
-                        color = Color.White
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                }
-    }
-}
+                }}}
