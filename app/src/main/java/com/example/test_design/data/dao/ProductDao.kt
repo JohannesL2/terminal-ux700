@@ -1,15 +1,17 @@
+package com.example.test_design.data.dao
+
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.example.test_design.data.entity.ProductEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductDao {
-    @Insert
-    suspend fun insert(product: Product)
+    @Query("SELECT * FROM ProductEntity")
+    fun getAllProducts(): Flow<List<ProductEntity>>
 
-    @Query("SELECT * FROM products")
-    suspend fun getAll(): List<Product>
-
-    @Query("DELETE FROM products")
-    suspend fun deleteAll()
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProduct(product: ProductEntity)
 }

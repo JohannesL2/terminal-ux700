@@ -1,5 +1,8 @@
 package com.example.test_design
 
+import com.example.test_design.data.dao.ProductDao
+import com.example.test_design.data.db.AppDatabase
+import com.example.test_design.data.entity.ProductEntity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -60,13 +63,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import org.w3c.dom.Text
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.firstOrNull
 
-data class Product(
+data class UiProduct(
     val name: String,
     val description: String,
     val price: Int,
@@ -74,23 +81,44 @@ data class Product(
 )
 
 data class CartItem(
-    val product: Product,
+    val product: UiProduct,
     var quantity: Int
 )
 
+//fake produkter, men den längst ner alltså kaffe är en riktig produkt i SQL databasen
 val sampleProducts = listOf(
-    Product("Kaffe", "Vanligt bryggkaffe", 49, "Dryck"),
-    Product("Te", "Grönt Te", 39, "Dryck"),
-    Product("Cappuccino", "Med mjölkskum", 59, "Dryck"),
-    Product("Latte", "Espresso med varm mjölk", 59, "Dryck"),
-    Product("Kaka", "Chokladkaka", 45, "Snacks"),
-    Product("Smörgås", "Ost och skinka", 55, "Mat")
-
+    UiProduct("Te", "Grönt Te", 39, "Dryck"),
+    UiProduct("Cappuccino", "Med mjölkskum", 59, "Dryck"),
+    UiProduct("Latte", "Espresso med varm mjölk", 59, "Dryck"),
+    UiProduct("Kaka", "Chokladkaka", 45, "Snacks"),
+    UiProduct("Smörgås", "Ost och skinka", 55, "Mat")
 )
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val db = AppDatabase.getInstance(this)
+        val dao = db.productDao()
+
+        //Problemet här är att produkten kaffe läggs till varje gång man startar appen? så vi
+        //kanske borde göra så att den blir null ifall produkten redan finns, samt ge den ett artikel.nr som är unikt
+        lifecycleScope.launch {
+
+            dao.insertProduct(
+                ProductEntity(
+                    name = "Kaffe",
+                    description = "Bryggkaffe",
+                    price = 25,
+                    category = "Dryck"
+                )
+            )
+        }
+        //Art.Nr
+        //EAN-nummer 16 siffror?
+
+        //efter beställning blir det ordernummer och radnummer, kopplat ihop i orderhuvud
+
         enableEdgeToEdge()
         setContent {
             TestdesignTheme {
@@ -102,8 +130,8 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     startDestination = "main"
                 ) {
-                    composable("main") { GradientScreen(navController, cart) }
-                    composable("second") { SecondScreen(navController, cart) }
+                    composable("main") { GradientScreen(navController, cart, dao) }
+                    composable("second") { SecondScreen(navController, cart, dao) }
                     composable("pinScreen") {
                         PinScreen(
                             navController = navController,
@@ -122,22 +150,42 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GradientScreen(
     navController: NavController,
-    cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartItem>
+    cart: SnapshotStateList<CartItem>,
+    dao: ProductDao
     ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Alla") }
     val categories = listOf("Alla", "Dryck", "Mat", "Snacks")
 
-    val filteredProducts = sampleProducts.filter { product ->
+    var dbProducts by remember { mutableStateOf(listOf<ProductEntity>()) }
+
+    LaunchedEffect(Unit) {
+        dao.getAllProducts().collect { products ->
+            dbProducts = products
+        }
+    }
+
+    val roomProducts = dbProducts.map { entity ->
+        UiProduct(
+            name = entity.name,
+            description = entity.description,
+            price = entity.price,
+            category = entity.category
+        )
+    }
+
+    val allProducts = sampleProducts + roomProducts
+
+    val filteredProducts = allProducts.filter { product ->
         (selectedCategory == "Alla" || product.category == selectedCategory) &&
                 (searchQuery.isBlank() || product.name.contains(searchQuery, ignoreCase = true))
     }
     Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp) .background(
         Brush.linearGradient(
             listOf(
-                Color(0xFF000000),
-                Color(0xFF111111),
-                Color(0xFF222222)
+                Color(0xFFFFFFFF),
+                Color(0xFFF5F5F5),
+                Color(0xFFEFEFEF)
             ),
             start = Offset(0f, 0f),
             end = Offset(0f, Float.POSITIVE_INFINITY)
@@ -212,7 +260,7 @@ fun GradientScreen(
     }
 
 @Composable
-fun ProductCard(product: Product, cart: SnapshotStateList<CartItem>) {
+fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
     val onAddToCart: () -> Unit = {
         val index = cart.indexOfFirst { it.product.name == product.name }
         if (index >= 0) {
@@ -290,7 +338,8 @@ fun ProductCard(product: Product, cart: SnapshotStateList<CartItem>) {
 @Composable
 fun SecondScreen(
     navController: NavController,
-    cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartItem>
+    cart: SnapshotStateList<CartItem>,
+    dao: ProductDao
     ) {
     Box(
         modifier = Modifier
