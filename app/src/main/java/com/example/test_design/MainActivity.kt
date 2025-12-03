@@ -8,9 +8,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -53,6 +57,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.mutableStateOf
@@ -61,9 +66,9 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -78,6 +83,13 @@ import androidx.compose.ui.draw.alpha
 import com.example.test_design.data.utils.generateEAN
 import com.example.test_design.data.utils.generateArticleNumber
 import com.example.test_design.data.utils.generateRowNumber
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.window.Dialog
 
 data class UiProduct(
     val name: String,
@@ -117,11 +129,24 @@ class MainActivity : ComponentActivity() {
                         PinScreen(
                             navController = navController,
                             cart = cart,
+                            dao = dao,
                             onPinEntered = { pin ->
                                 println("PIN: $pin")
                             }
                         )
                     }
+                    composable("confirmation")
+                    {PaymentConfirmation(
+                        navController = navController,
+                        cart = cart,
+                        dao = dao,
+                        onClose = {
+                            cart.clear()
+                            navController.navigate("main") {
+                                popUpTo("main") {inclusive = true}
+                            }
+                        }
+                    )}
                 }
             }
         }
@@ -441,11 +466,22 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
 fun PinScreen(
     navController: NavController,
     cart: SnapshotStateList<CartItem>,
+    dao: ProductDao,
     onPinEntered: (String) -> Unit
 ) {
     var pin by remember { mutableStateOf("") }
-
+    var showConfirmation by remember { mutableStateOf(false) }
     val total = cart.sumOf { it.product.price * it.quantity }
+
+    val infiniteTransition = rememberInfiniteTransition()
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1.1f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
 
     Column(
         modifier = Modifier
@@ -455,6 +491,7 @@ fun PinScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
         Text(
             text = "Totalt: $total kr",
             fontSize = 38.sp,
@@ -462,15 +499,36 @@ fun PinScreen(
             color = Color.White
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "*".repeat(pin.length),
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.height(40.dp),
+        Image(
+            painter = painterResource(id = R.drawable.ic_contactless),
+            contentDescription = "Kontaktlös betalning",
+            modifier = Modifier
+                .size(90.dp)
+                .scale(scale),
+            colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.7f))
         )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            repeat(4) { index ->
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(Color.White.copy(alpha = 0.15f))
+                ) {
+                    Text(
+                        text = if (index < pin.length) "●" else "○",
+                        fontSize = 50.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.offset(y = (-7).dp)
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -483,70 +541,168 @@ fun PinScreen(
 
         buttons.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(28.dp),
                 modifier = Modifier.padding(vertical = 12.dp)
             ) {
                 row.forEach { label ->
                     val isOk = label == "OK"
-                    val isEnabled = when(label) {
+                    val isBack = label == "⌫"
+
+                    val isEnabled = when (label) {
                         "⌫" -> pin.isNotEmpty()
                         "OK" -> pin.length == 4
                         else -> true
                     }
 
                     val buttonColor = when (label) {
-                        "OK" -> Color(0xFF81C784)
+                        "OK" -> Color(0xFF4CAF50)
                         "⌫" -> Color(0xFFFFA726)
                         else -> Color.White
+                    }.copy(alpha = if (isEnabled) 1f else 0.4f)
+
+                    val textColor = when (label) {
+                        "OK", "⌫" -> Color.White.copy(alpha = if (isEnabled) 1f else 0.5f)
+                        else -> Color.Black
                     }
 
-                        Button(
-                            onClick = {
-                                when {
-                                    label == "⌫" && pin.isNotEmpty() -> pin = pin.dropLast(1)
-                                    label == "OK" && pin.length == 4 -> onPinEntered(pin)
-                                    label != "⌫" && label != "OK" && pin.length < 4 -> pin += label
+                    Button(
+                        onClick = {
+                            when {
+                                label == "⌫" && pin.isNotEmpty() -> pin = pin.dropLast(1)
+                                label == "OK" && pin.length == 4 -> {
+                                    onPinEntered(pin)
+                                    showConfirmation = true
                                 }
-                            },
-                            modifier = Modifier
-                                .size(100.dp)
-                                .alpha(if ((label == "OK" && pin.length != 4) || (label == "⌫" && pin.isEmpty()))
-                                    0f else 1f),
-                            enabled = isEnabled,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isEnabled) buttonColor else Color.DarkGray,
-                                contentColor = Color.White
+
+                                label != "⌫" && label != "OK" && pin.length < 4 -> pin += label
+                            }
+                        },
+                        modifier = Modifier
+                            .size(100.dp),
+                        enabled = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = buttonColor,
+                            contentColor = textColor
+                        )
+                    ) {
+                        if (isBack) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = textColor,
+                                modifier = Modifier.size(36.dp)
                             )
-                        ) {
+                        } else {
                             Text(
                                 text = label,
-                                modifier = if (label == "⌫") Modifier.offset(x = (-3).dp) else Modifier,
                                 fontSize = if (isOk) 24.sp else 36.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = when (label) {
-                                    "OK" -> Color.White
-                                    else -> Color.Black
-                                }
                             )
                         }
                     }
                 }
             }
-                Spacer(modifier = Modifier.height(32.dp))
+        }
+        Spacer(modifier = Modifier.height(18.dp))
 
-                Button(
-                    onClick = { navController.navigate("second") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                ) {
-                    Text(
-                        text = "Avbryt köp",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+        Button(
+            onClick = { navController.navigate("second") },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+        ) {
+            Text(
+                text = "Avbryt köp",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+            if (showConfirmation) {
+                Dialog(onDismissRequest = { showConfirmation = false }) {
+                    PaymentConfirmation(
+                        cart = cart,
+                        navController = navController,
+                        dao = dao,
+                        onClose = {
+                            showConfirmation = false
+                        }
                     )
-                }}}
+                }
+            }
+    }
+    }
+
+@Composable
+fun PaymentConfirmation(
+    navController: NavController,
+    cart: SnapshotStateList<CartItem>,
+    dao: ProductDao,
+    onClose: () -> Unit
+) {
+    val total = cart.sumOf { it.product.price * it.quantity }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1E1E2F))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Betalning godkänd!",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Green
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Order.Nr",
+            fontSize = 18.sp,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier
+            .height(12.dp))
+
+        Text(
+            text = "Belopp: $total kr!\n"+
+                    "KORT: VISA CREDIT\n" +
+                    "KORTNR: **** **** **** 4321\n" +
+                    "METOD: CHIP/PIN\n" +
+                    "ORDER.NR: 783429\n" +
+                    "2025-12-03 15:42",
+            fontSize = 18.sp,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier
+            .height(24.dp))
+
+        Text(
+            text = "TACK FÖR DITT KÖP!",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = {
+                cart.clear()
+                navController.navigate("main") {
+                    popUpTo("main") {inclusive = true}
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().height(60.dp)
+        ) {
+            Text("Tillbaka till start", color = Color.White, fontSize = 20.sp)
+        }
+    }
+}
