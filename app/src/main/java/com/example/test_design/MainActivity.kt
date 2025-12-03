@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +66,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,10 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
+import androidx.compose.ui.draw.alpha
+import com.example.test_design.data.utils.generateEAN
+import com.example.test_design.data.utils.generateArticleNumber
+import com.example.test_design.data.utils.generateRowNumber
 
 data class UiProduct(
     val name: String,
@@ -85,37 +91,12 @@ data class CartItem(
     var quantity: Int
 )
 
-//fake produkter, men den längst ner alltså kaffe är en riktig produkt i SQL databasen
-val sampleProducts = listOf(
-    UiProduct("Te", "Grönt Te", 39, "Dryck"),
-    UiProduct("Cappuccino", "Med mjölkskum", 59, "Dryck"),
-    UiProduct("Latte", "Espresso med varm mjölk", 59, "Dryck"),
-    UiProduct("Kaka", "Chokladkaka", 45, "Snacks"),
-    UiProduct("Smörgås", "Ost och skinka", 55, "Mat")
-)
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val db = AppDatabase.getInstance(this)
         val dao = db.productDao()
-
-        //Problemet här är att produkten kaffe läggs till varje gång man startar appen? så vi
-        //kanske borde göra så att den blir null ifall produkten redan finns, samt ge den ett artikel.nr som är unikt
-        lifecycleScope.launch {
-
-            dao.insertProduct(
-                ProductEntity(
-                    name = "Kaffe",
-                    description = "Bryggkaffe",
-                    price = 25,
-                    category = "Dryck"
-                )
-            )
-        }
-        //Art.Nr
-        //EAN-nummer 16 siffror?
 
         //efter beställning blir det ordernummer och radnummer, kopplat ihop i orderhuvud
 
@@ -165,7 +146,7 @@ fun GradientScreen(
         }
     }
 
-    val roomProducts = dbProducts.map { entity ->
+    val allProducts = dbProducts.map { entity ->
         UiProduct(
             name = entity.name,
             description = entity.description,
@@ -173,8 +154,6 @@ fun GradientScreen(
             category = entity.category
         )
     }
-
-    val allProducts = sampleProducts + roomProducts
 
     val filteredProducts = allProducts.filter { product ->
         (selectedCategory == "Alla" || product.category == selectedCategory) &&
@@ -211,13 +190,13 @@ fun GradientScreen(
                 onClick = { navController.navigate("second") },
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFF4CAF50))
+                    .background(Color.Black)
             ) {
                 Icon(
                     imageVector = Icons.Default.ShoppingCart,
                     contentDescription = "Kundvagn",
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
@@ -236,11 +215,12 @@ fun GradientScreen(
                         onClick = { selectedCategory = category },
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedCategory == category) Color(0xFF4CAF50) else Color.Gray
+                            containerColor = if (selectedCategory == category) Color(0xFF6200EE) else Color(0xFFE0E0E0)
                         ),
                         modifier = Modifier.height(40.dp)
                     ) {
-                        Text(category, color = Color.White)
+                        Text(category,
+                            color = if(selectedCategory == category) Color.White else Color(0xFF212121))
                     }
                 }
             }
@@ -272,13 +252,19 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
     }
 
         Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1B1F)),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(170.dp)
-                .padding(vertical = 8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                .padding(vertical = 8.dp)
+                .shadow(
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(8.dp),
+                    ambientColor = Color(0xFFB0B0B0),
+                    spotColor = Color(0xFF909090)
+                )
+                .border(BorderStroke(1.dp, Color(0xFF6200EE)), shape = RoundedCornerShape(8.dp))
         )
         {
             Column(
@@ -291,13 +277,13 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
                     text = product.name,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.Black
                 )
 
                 Text(
                     text = product.description,
                     fontSize = 14.sp,
-                    color = Color(0xFFCCCCCC),
+                    color = Color(0xFF212121),
                     maxLines = 2
                 )
 
@@ -344,27 +330,16 @@ fun SecondScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        Color(0xFF000000),
-                        Color(0xFF111111),
-                        Color(0xFF222222)
-                    ),
-                    start = Offset(0f, 0f),
-                    end = Offset(0f, Float.POSITIVE_INFINITY)
-                )
-            ),
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Varukorg", color = Color.White, fontSize = 26.sp)
-            Spacer(modifier = Modifier.height(32.dp))
+            Text("Varukorg", color = Color.Black, fontSize = 32.sp)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(12.dp)
     ) {
         Text(
             text = "Lägg till ny produkt",
@@ -372,54 +347,20 @@ fun SecondScreen(
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            var newProductName by remember { mutableStateOf("") }
-            var newProductPrice by remember { mutableStateOf("") }
-
-            TextField(
-                value = newProductName,
-                onValueChange = { newProductName = it },
-                label = { Text("Produktnamn") },
-                modifier = Modifier
-                    .weight(2f)
-                    .height(56.dp)
-            )
-
-            TextField(
-                value = newProductPrice,
-                onValueChange = {
-                    newProductPrice = it.filter { c -> c.isDigit() }
-                }, // bara siffror
-                label = { Text("Pris") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-            )
-        }
     }
-
-            Spacer(modifier = Modifier.height(32.dp))
             CartSummary(cart)
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
             Button(
                 onClick = { navController.navigate("pinScreen") },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (cart.isNotEmpty()) Color(0xFF1976D2) else Color.Gray),
+                    containerColor = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .height(60.dp),
                 enabled = cart.isNotEmpty()
             ) { Text(text = "Betala med kort", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(26.dp))
             Button(
                 onClick = { navController.navigate("main") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF757575)),
@@ -443,7 +384,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
     ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (cart.isEmpty()) {
-                    Text("Din varukorg är tom", color = Color.Gray, fontSize = 16.sp)
+                    Text("Din varukorg är tom", color = Color.LightGray, fontSize = 20.sp)
                 } else {
 
                     LazyColumn(
@@ -458,7 +399,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White.copy(alpha = 0.2f))
+                                    .background(Color.White.copy(alpha = 0.9f))
                                     .padding(8.dp)
                             ) {
                                 Row(
@@ -466,7 +407,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("${item.product.name} x${item.quantity} - ${item.product.price * item.quantity} kr", color = Color.White)
+                                    Text("x${item.quantity} ${item.product.name} - ${item.product.price * item.quantity} kr", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)
                                     IconButton(
                                         onClick = {
                                             val index = cart.indexOf(item)
@@ -479,7 +420,8 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Ta bort",
-                                            tint = Color.Red
+                                            tint = Color.Red,
+                                            modifier = Modifier.size(36.dp)
                                         )
                                     }
                                 }
@@ -488,7 +430,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     val total = cart.sumOf { it.product.price * it.quantity }
-                    Text("Totalt: $total kr", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
+                    Text("Att Betala: $total kr", fontWeight = FontWeight.Medium, color = Color.LightGray, fontSize = 26.sp)
                 }
             }
         }
@@ -509,7 +451,7 @@ fun PinScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF1E1E2F))
-            .padding(32.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -520,13 +462,14 @@ fun PinScreen(
             color = Color.White
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
         Text(
             text = "*".repeat(pin.length),
             fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = Color.White,
+            modifier = Modifier.height(40.dp),
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -540,17 +483,21 @@ fun PinScreen(
 
         buttons.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier.padding(vertical = 12.dp)
             ) {
                 row.forEach { label ->
                     val isOk = label == "OK"
-                    val isEnabled = !isOk || pin.length == 4
+                    val isEnabled = when(label) {
+                        "⌫" -> pin.isNotEmpty()
+                        "OK" -> pin.length == 4
+                        else -> true
+                    }
 
                     val buttonColor = when (label) {
-                        "OK" -> Color(0xFF4CAF50)
-                        "⌫" -> Color(0xFF757575)
-                        else -> Color(0xFF2E7D32)
+                        "OK" -> Color(0xFF81C784)
+                        "⌫" -> Color(0xFFFFA726)
+                        else -> Color.White
                     }
 
                         Button(
@@ -561,7 +508,10 @@ fun PinScreen(
                                     label != "⌫" && label != "OK" && pin.length < 4 -> pin += label
                                 }
                             },
-                            modifier = Modifier.size(80.dp),
+                            modifier = Modifier
+                                .size(100.dp)
+                                .alpha(if ((label == "OK" && pin.length != 4) || (label == "⌫" && pin.isEmpty()))
+                                    0f else 1f),
                             enabled = isEnabled,
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -571,8 +521,13 @@ fun PinScreen(
                         ) {
                             Text(
                                 text = label,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
+                                modifier = if (label == "⌫") Modifier.offset(x = (-3).dp) else Modifier,
+                                fontSize = if (isOk) 24.sp else 36.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (label) {
+                                    "OK" -> Color.White
+                                    else -> Color.Black
+                                }
                             )
                         }
                     }
@@ -585,7 +540,7 @@ fun PinScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
-                        .fillMaxWidth(0.6f)
+                        .fillMaxWidth()
                         .height(60.dp)
                 ) {
                     Text(
