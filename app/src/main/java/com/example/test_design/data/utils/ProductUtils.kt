@@ -9,3 +9,7 @@ fun generateArticleNumber(): String {
 }
 
 fun generateRowNumber(): Int = (1..1000).random()
+
+fun generateOrderNumber(): String {
+    return (100000..999999).random().toString()
+}

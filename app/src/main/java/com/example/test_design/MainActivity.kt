@@ -83,6 +83,7 @@ import androidx.compose.ui.draw.alpha
 import com.example.test_design.data.utils.generateEAN
 import com.example.test_design.data.utils.generateArticleNumber
 import com.example.test_design.data.utils.generateRowNumber
+import com.example.test_design.data.utils.generateOrderNumber
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Surface
@@ -645,6 +646,11 @@ fun PaymentConfirmation(
     onClose: () -> Unit
 ) {
     val total = cart.sumOf { it.product.price * it.quantity }
+    val orderNumber = generateOrderNumber()
+
+    val currentDateTime = java.time.LocalDateTime.now()
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val formattedDateTime = currentDateTime.format(formatter)
 
     Column(
         modifier = Modifier
@@ -675,8 +681,8 @@ fun PaymentConfirmation(
                     "KORT: VISA CREDIT\n" +
                     "KORTNR: **** **** **** 4321\n" +
                     "METOD: CHIP/PIN\n" +
-                    "ORDER.NR: 783429\n" +
-                    "2025-12-03 15:42",
+                    "ORDER.NR: $orderNumber\n" +
+                    "$formattedDateTime",
             fontSize = 18.sp,
             color = Color.White
         )
