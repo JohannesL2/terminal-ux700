@@ -87,16 +87,25 @@ import com.example.test_design.data.utils.generateOrderNumber
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Surface
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.jakewharton.threetenabp.AndroidThreeTen
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.format.DateTimeFormatter
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawBehind
 
 data class UiProduct(
     val name: String,
     val description: String,
     val price: Int,
-    val category: String
+    val category: String,
+    val imageRes: Int
 )
 
 data class CartItem(
@@ -107,6 +116,8 @@ data class CartItem(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        AndroidThreeTen.init(this)
 
         val db = AppDatabase.getInstance(this)
         val dao = db.productDao()
@@ -164,7 +175,10 @@ fun GradientScreen(
     var selectedCategory by remember { mutableStateOf("Alla") }
     val categories = listOf("Alla", "Dryck", "Mat", "Snacks")
 
+    val context = LocalContext.current
     var dbProducts by remember { mutableStateOf(listOf<ProductEntity>()) }
+
+    val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(Unit) {
         dao.getAllProducts().collect { products ->
@@ -172,12 +186,26 @@ fun GradientScreen(
         }
     }
 
+    val imageNameMap = mapOf(
+        "Kaffe" to "coffee",
+        "Latte" to "latte",
+        "Kaka" to "cake",
+        "Smörgås" to "sandwich"
+    )
+
     val allProducts = dbProducts.map { entity ->
+        val imageResId = entity.imageResName?.let { name ->
+            val englishName = imageNameMap[name] ?: "placeholder_image"
+            val resId = context.resources.getIdentifier(englishName, "drawable", context.packageName)
+            if (resId != 0) resId else R.drawable.placeholder_image
+        } ?: R.drawable.placeholder_image
+
         UiProduct(
             name = entity.name,
             description = entity.description,
             price = entity.price,
-            category = entity.category
+            category = entity.category,
+            imageRes = imageResId
         )
     }
 
@@ -213,7 +241,10 @@ fun GradientScreen(
             )
 
             IconButton(
-                onClick = { navController.navigate("second") },
+                onClick = {
+                    navController.navigate("second")
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                          },
                 modifier = Modifier
                     .size(56.dp)
                     .background(Color.Black)
@@ -255,7 +286,6 @@ fun GradientScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             contentPadding = PaddingValues(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -267,32 +297,35 @@ fun GradientScreen(
 
 @Composable
 fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
-    val onAddToCart: () -> Unit = {
-        val index = cart.indexOfFirst { it.product.name == product.name }
-        if (index >= 0) {
-            val item = cart[index]
-            cart[index] = item.copy(quantity = item.quantity + 1)
-        } else {
-            cart.add(CartItem(product, 1))
-        }
-    }
+    val cartItemIndex = cart.indexOfFirst { it.product.name == product.name }
+    val quantity = if (cartItemIndex >= 0) cart[cartItemIndex].quantity else 0
 
-        Card(
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+    val haptic = LocalHapticFeedback.current
+
+    Card(
+        shape = RoundedCornerShape(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+    )
+    {
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(170.dp)
-                .padding(vertical = 8.dp)
-                .shadow(
-                    elevation = 12.dp,
-                    shape = RoundedCornerShape(8.dp),
-                    ambientColor = Color(0xFFB0B0B0),
-                    spotColor = Color(0xFF909090)
-                )
-                .border(BorderStroke(1.dp, Color(0xFF6200EE)), shape = RoundedCornerShape(8.dp))
-        )
-        {
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = product.imageRes),
+                contentDescription = product.name,
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -325,27 +358,51 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
                         color = Color(0xFF4CAF50)
                     )
 
-                    Button(
-                        onClick = onAddToCart,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50)
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 6.dp,
-                            pressedElevation = 12.dp
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "Lägg till i varukorgen",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        TextButton(
+                            onClick = {
+                                if (quantity > 0) {
+                                    if (quantity == 1) cart.removeAt(cartItemIndex)
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                } else { cart[cartItemIndex] =
+                                        cart[cartItemIndex].copy(quantity = quantity - 1)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                            },
+                            modifier = Modifier
+                                .size(60.dp)
+                                .offset(y = (-2).dp)
+                        ) {
+                            Text("-", fontSize = 24.sp, color = Color(0xFF212121))
+                        }
+
+                        Text(quantity.toString(), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+                        TextButton(
+                            onClick = {
+                                if (quantity == 0) {
+                                    cart.add(CartItem(product, 1))
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                } else {
+                                    cart[cartItemIndex] = cart[cartItemIndex].copy(quantity = quantity + 1)
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            },
+                            modifier = Modifier
+                                .size(60.dp)
+                                .offset(y = (-2).dp)
+                            ) {
+                            Text("+", fontSize = 24.sp, color = Color(0xFF212121))
+                        }
                     }
                 }
             }
         }
     }
+}
 
 @Composable
 fun SecondScreen(
@@ -365,7 +422,6 @@ fun SecondScreen(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp)
     ) {
         Text(
             text = "Lägg till ny produkt",
@@ -375,38 +431,76 @@ fun SecondScreen(
         )
     }
             CartSummary(cart)
-            Spacer(modifier = Modifier.height(48.dp))
             Button(
                 onClick = { navController.navigate("pinScreen") },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(0.dp),
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth()
                     .height(60.dp),
                 enabled = cart.isNotEmpty()
-            ) { Text(text = "Betala med kort", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
-            Spacer(modifier = Modifier.height(26.dp))
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = "Betala med kort",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Betala med kort", fontSize = 20.sp, fontWeight = FontWeight.Bold
+                )
+            }}
+
+            Spacer(modifier = Modifier.height(0.dp))
+            Button(
+                onClick = { navController.navigate("pinScreen") },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (cart.isNotEmpty()) Color(0xFF27AE60) else Color.Gray),
+                shape = RoundedCornerShape(0.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                enabled = cart.isNotEmpty()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.swish_icon),
+                        contentDescription = "Swish",
+                        modifier = Modifier
+                            .size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Betala med Swish", fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Button(
                 onClick = { navController.navigate("main") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF757575)),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(0.dp),
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth()
                     .height(50.dp)
-            ) { Text(text = "Gå tillbaka", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+            ) { Text(text = "Gå tillbaka", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
         }}}
 
 @Composable
 fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartItem>) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF33353B)),
+        shape = RoundedCornerShape(0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(450.dp)
-            .padding(horizontal = 16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            .height(450.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
     ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (cart.isEmpty()) {
@@ -433,7 +527,16 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("x${item.quantity} ${item.product.name} - ${item.product.price * item.quantity} kr", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)
+                                    Image(
+                                        painter = painterResource(id = item.product.imageRes),
+                                        contentDescription = item.product.name,
+                                        modifier = Modifier
+                                            .size(86.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .border(BorderStroke(1.dp, Color(0xFF6200EE)), shape = RoundedCornerShape(8.dp))
+                                    )
+
+                                    Text("x${item.quantity} ${item.product.name} - ${item.product.price * item.quantity} kr", color = Color(0xFF212121), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)
                                     IconButton(
                                         onClick = {
                                             val index = cart.indexOf(item)
@@ -456,7 +559,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     val total = cart.sumOf { it.product.price * it.quantity }
-                    Text("Att Betala: $total kr", fontWeight = FontWeight.Medium, color = Color.LightGray, fontSize = 26.sp)
+                    Text("Att Betala: $total kr", fontWeight = FontWeight.Medium, color = Color.Black, fontSize = 26.sp)
                 }
             }
         }
@@ -483,6 +586,8 @@ fun PinScreen(
             repeatMode = RepeatMode.Reverse
         )
     )
+
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = Modifier
@@ -568,6 +673,8 @@ fun PinScreen(
 
                     Button(
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
                             when {
                                 label == "⌫" && pin.isNotEmpty() -> pin = pin.dropLast(1)
                                 label == "OK" && pin.length == 4 -> {
@@ -646,10 +753,10 @@ fun PaymentConfirmation(
     onClose: () -> Unit
 ) {
     val total = cart.sumOf { it.product.price * it.quantity }
-    val orderNumber = generateOrderNumber()
+    val orderNumber by remember { mutableStateOf(generateOrderNumber()) }
 
-    val currentDateTime = java.time.LocalDateTime.now()
-    val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val currentDateTime = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val formattedDateTime = currentDateTime.format(formatter)
 
     Column(
@@ -668,7 +775,7 @@ fun PaymentConfirmation(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Order.Nr",
+            text = "Order.Nr $orderNumber",
             fontSize = 18.sp,
             color = Color.White
         )
@@ -681,7 +788,6 @@ fun PaymentConfirmation(
                     "KORT: VISA CREDIT\n" +
                     "KORTNR: **** **** **** 4321\n" +
                     "METOD: CHIP/PIN\n" +
-                    "ORDER.NR: $orderNumber\n" +
                     "$formattedDateTime",
             fontSize = 18.sp,
             color = Color.White

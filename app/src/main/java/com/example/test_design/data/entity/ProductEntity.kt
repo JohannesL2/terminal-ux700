@@ -13,5 +13,6 @@ data class ProductEntity(
 
     val ean: String,
     val articleNumber: String,
-    val rowNumber: Int
+    val rowNumber: Int,
+    val imageResName: String? = null
 )

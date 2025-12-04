@@ -32,6 +32,7 @@ interface ProductDao {
                 description = "Bryggkaffe",
                 price = 25,
                 category = "Dryck",
+                imageResName = "Kaffe",
                 ean = generateEAN(),
                 articleNumber = generateArticleNumber(),
                 rowNumber = generateRowNumber()
@@ -41,6 +42,7 @@ interface ProductDao {
                 description =  "Varm mjölk + espresso",
                 price = 59,
                 category = "Dryck",
+                imageResName = "Latte",
                 ean = generateEAN(),
                 articleNumber = generateArticleNumber(),
                 rowNumber = generateRowNumber()
@@ -50,6 +52,7 @@ interface ProductDao {
                 description =  "Kladdkaka",
                 price = 39,
                 category = "Snacks",
+                imageResName = "Kaka",
                 ean = generateEAN(),
                 articleNumber = generateArticleNumber(),
                 rowNumber = generateRowNumber()
@@ -59,6 +62,7 @@ interface ProductDao {
                 description =  "Ost och skinka",
                 price = 55,
                 category = "Mat",
+                imageResName = "Smörgås",
                 ean = generateEAN(),
                 articleNumber = generateArticleNumber(),
                 rowNumber = generateRowNumber()
