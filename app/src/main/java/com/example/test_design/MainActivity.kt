@@ -733,6 +733,8 @@ fun PinScreen(
                                 text = label,
                                 fontSize = if (isOk) 24.sp else 36.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
