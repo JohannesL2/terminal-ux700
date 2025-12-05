@@ -99,6 +99,7 @@ import org.threeten.bp.format.DateTimeFormatter
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.drawBehind
+import androidx.core.view.WindowCompat
 
 data class UiProduct(
     val name: String,
@@ -116,6 +117,7 @@ data class CartItem(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.enableEdgeToEdge(window)
 
         AndroidThreeTen.init(this)
 
@@ -456,7 +458,7 @@ fun SecondScreen(
                 )
             }}
 
-            Spacer(modifier = Modifier.height(0.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Button(
                 onClick = { navController.navigate("pinScreen") },
                 colors = ButtonDefaults.buttonColors(
@@ -481,8 +483,6 @@ fun SecondScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
             Button(
                 onClick = { navController.navigate("main") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF757575)),
@@ -499,7 +499,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
         shape = RoundedCornerShape(0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(450.dp),
+            .height(430.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
     ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -588,6 +588,9 @@ fun PinScreen(
     )
 
     val haptic = LocalHapticFeedback.current
+
+    val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels / LocalContext.current.resources.displayMetrics.density
+    val buttonSize = (screenWidth / 4).dp
 
     Column(
         modifier = Modifier
@@ -686,7 +689,7 @@ fun PinScreen(
                             }
                         },
                         modifier = Modifier
-                            .size(100.dp),
+                            .size(buttonSize),
                         enabled = true,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
