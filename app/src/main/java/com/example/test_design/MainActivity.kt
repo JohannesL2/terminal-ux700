@@ -86,6 +86,7 @@ import com.example.test_design.data.utils.generateRowNumber
 import com.example.test_design.data.utils.generateOrderNumber
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -274,7 +275,7 @@ class MainActivity : ComponentActivity() {
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(60.dp)
+                        .height(70.dp)
                 )
 
                 IconButton(
@@ -283,7 +284,7 @@ class MainActivity : ComponentActivity() {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     },
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(70.dp)
                         .background(Color.Black)
                 ) {
                     Icon(
@@ -294,18 +295,19 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
-
+            //LÅS APPEN HELT NÄR DU SKRIVER IN DIN PIN HÄR,
+            // gör gärna en pin-kod som du kan testa med
             var showSellerLogin by remember { mutableStateOf(false) }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .padding(horizontal = 0.dp, vertical = 6.dp)
             ) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    contentPadding = PaddingValues(end = 8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     items(categories) { category ->
@@ -317,31 +319,38 @@ class MainActivity : ComponentActivity() {
                                     0xFFE0E0E0
                                 )
                             ),
-                            modifier = Modifier.height(40.dp)
+                            modifier = Modifier
+                                .height(42.dp)
+                                .defaultMinSize(minWidth = 80.dp)
                         ) {
                             Text(
                                 category,
                                 color = if (selectedCategory == category) Color.White else Color(
                                     0xFF212121
-                                )
+                                ),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
                             )
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
+//Gör en större lås ikon, kanske samma som kundvagnens bakgrund
+//men fördela dom så att man inte trycker fel
                 IconButton(
                     onClick = { showSellerLogin = true },
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(50.dp)
                         .background(
-                            color = Color(0xFF6200EE),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 4.dp)
+                            color = Color(0xFF6200EE)
+                        ),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Lock,
                         contentDescription = "Säljarlogin",
-                        tint = Color(0xFFFFD700)
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(36.dp)
                     )
                 }
 
@@ -715,8 +724,6 @@ class MainActivity : ComponentActivity() {
                 color = Color.White
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             Image(
                 painter = painterResource(id = R.drawable.ic_contactless),
                 contentDescription = "Kontaktlös betalning",
@@ -742,7 +749,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             val buttons = listOf(
                 listOf("1", "2", "3"),
@@ -753,8 +760,8 @@ class MainActivity : ComponentActivity() {
 
             buttons.forEach { row ->
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(vertical = 12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
                 ) {
                     row.forEach { label ->
                         val isOk = label == "OK"
@@ -820,7 +827,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             var showCancelDialog by remember { mutableStateOf(false) }
 
