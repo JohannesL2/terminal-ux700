@@ -90,6 +90,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Surface
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.ColorFilter
@@ -242,9 +244,26 @@ fun GradientScreen(
             TextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Sök produkter...") },
                 placeholder = { Text ("Sök produkter...", color = Color.Gray) },
                 singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Sök",
+                        tint = Color.Gray
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = ""}) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Rensa sökning",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                },
                 modifier = Modifier
                     .weight(1f)
                     .height(60.dp)
@@ -317,13 +336,13 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
         colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
+            .wrapContentHeight()
     )
     {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -384,7 +403,7 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
                             },
                             modifier = Modifier
                                 .size(60.dp)
-                                .offset(y = (-2).dp)
+                                .offset(y = (0).dp)
                         ) {
                             Text("-", fontSize = 24.sp, color = Color(0xFF212121))
                         }
@@ -403,7 +422,7 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
                             },
                             modifier = Modifier
                                 .size(60.dp)
-                                .offset(y = (-2).dp)
+                                .offset(y = (0).dp)
                             ) {
                             Text("+", fontSize = 24.sp, color = Color(0xFF212121))
                         }
@@ -466,7 +485,7 @@ fun SecondScreen(
                 )
             }}
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Button(
                 onClick = { navController.navigate("pinScreen") },
                 colors = ButtonDefaults.buttonColors(
@@ -722,20 +741,51 @@ fun PinScreen(
         }
         Spacer(modifier = Modifier.height(18.dp))
 
+        var showCancelDialog by remember { mutableStateOf(false) }
+
         Button(
-            onClick = { navController.navigate("second") },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+            onClick = { showCancelDialog = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB0BEC5)),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
+                .fillMaxWidth(0.6f)
+                .height(50.dp)
+                .align(Alignment.CenterHorizontally)
         ) {
             Text(
                 text = "Avbryt köp",
                 color = Color.White,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
+        }
+
+        if (showCancelDialog) {
+            Dialog(onDismissRequest = { showCancelDialog = false }) {
+                Box(
+                    modifier = Modifier
+                        .background(Color.White, shape = RoundedCornerShape(16.dp))
+                        .padding(24.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Är du säker på att du vill avbryta köpet?", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(onClick = { showCancelDialog = false }) {
+                                Text("Nej")
+                            }
+                            Button(onClick = {
+                                cart.clear()
+                                navController.navigate("main") {
+                                    popUpTo("main") {inclusive = true}
+                                }
+                            }) {
+                                Text("Ja")
+                            }
+                        }
+                    }
+                }
+            }
         }
 
             if (showConfirmation) {
