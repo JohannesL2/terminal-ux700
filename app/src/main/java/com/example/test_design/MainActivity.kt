@@ -86,6 +86,10 @@ import com.example.test_design.data.utils.generateRowNumber
 import com.example.test_design.data.utils.generateOrderNumber
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.ColorFilter
@@ -215,7 +219,12 @@ fun GradientScreen(
         (selectedCategory == "Alla" || product.category == selectedCategory) &&
                 (searchQuery.isBlank() || product.name.contains(searchQuery, ignoreCase = true))
     }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp) .background(
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .statusBarsPadding()
+        .navigationBarsPadding()
+        .imePadding()
+        .background(
         Brush.linearGradient(
             listOf(
                 Color(0xFFFFFFFF),
@@ -238,8 +247,7 @@ fun GradientScreen(
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(0.dp)
+                    .height(60.dp)
             )
 
             IconButton(
@@ -248,7 +256,7 @@ fun GradientScreen(
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                           },
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(60.dp)
                     .background(Color.Black)
             ) {
                 Icon(
@@ -260,14 +268,14 @@ fun GradientScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(18.dp))
         Box(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.CenterStart
         ) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp)
+                contentPadding = PaddingValues(horizontal = 12.dp)
             ) {
                  items(categories) {category ->
                     Button(
@@ -366,11 +374,11 @@ fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
                     ) {
                         TextButton(
                             onClick = {
-                                if (quantity > 0) {
-                                    if (quantity == 1) cart.removeAt(cartItemIndex)
+                                if (quantity > 1) {
+                                    cart[cartItemIndex] = cart[cartItemIndex].copy(quantity = quantity - 1)
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                } else { cart[cartItemIndex] =
-                                        cart[cartItemIndex].copy(quantity = quantity - 1)
+                                } else if (quantity == 1) {
+                                        cart.removeAt(cartItemIndex)
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
                             },
@@ -499,7 +507,7 @@ fun CartSummary(cart: androidx.compose.runtime.snapshots.SnapshotStateList<CartI
         shape = RoundedCornerShape(0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(430.dp),
+            .fillMaxHeight(0.6f),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
     ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -589,8 +597,9 @@ fun PinScreen(
 
     val haptic = LocalHapticFeedback.current
 
-    val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels / LocalContext.current.resources.displayMetrics.density
-    val buttonSize = (screenWidth / 4).dp
+    val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels /
+            LocalContext.current.resources.displayMetrics.density
+    val buttonSize = (screenWidth / 4.5f).dp
 
     Column(
         modifier = Modifier
@@ -603,7 +612,7 @@ fun PinScreen(
 
         Text(
             text = "Totalt: $total kr",
-            fontSize = 38.sp,
+            fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
@@ -614,27 +623,23 @@ fun PinScreen(
             painter = painterResource(id = R.drawable.ic_contactless),
             contentDescription = "Kontaktlös betalning",
             modifier = Modifier
-                .size(90.dp)
+                .size(80.dp)
                 .scale(scale),
             colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.7f))
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             repeat(4) { index ->
+                val filled = index < pin.length
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(Color.White.copy(alpha = 0.15f))
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (filled) Color.White.copy(alpha = 1f) else Color(0xFF6200EE)
+                        )
                 ) {
-                    Text(
-                        text = if (index < pin.length) "●" else "○",
-                        fontSize = 50.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.offset(y = (-7).dp)
-                    )
                 }
             }
         }
@@ -650,7 +655,7 @@ fun PinScreen(
 
         buttons.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(28.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(vertical = 12.dp)
             ) {
                 row.forEach { label ->
