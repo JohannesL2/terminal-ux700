@@ -730,13 +730,13 @@ class MainActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(cart) { item ->
-                            Box(
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White.copy(alpha = 0.9f))
-                                    .padding(8.dp)
+                                    .padding(vertical = 6.dp)
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -747,21 +747,25 @@ class MainActivity : ComponentActivity() {
                                         painter = painterResource(id = item.product.imageRes),
                                         contentDescription = item.product.name,
                                         modifier = Modifier
-                                            .size(86.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .border(
-                                                BorderStroke(1.dp, Color(0xFF6200EE)),
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
+                                            .size(100.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                     )
 
-                                    Text(
-                                        "x${item.quantity} ${item.product.name} - ${item.product.price * item.quantity} kr",
-                                        color = Color(0xFF212121),
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 2.sp
-                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth() .padding(horizontal = 16.dp)
+                                    ) {
+                                        Text("${item.quantity} x ${item.product.name}", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.weight(1f))
+
+                                        Text(
+                                            "${item.product.price * item.quantity} kr",
+                                            color = Color(0xFF212121),
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+
                                     IconButton(
                                         onClick = {
                                             val index = cart.indexOf(item)
@@ -772,6 +776,7 @@ class MainActivity : ComponentActivity() {
                                                 cart.remove(item)
                                             }
                                         }
+
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
@@ -779,7 +784,7 @@ class MainActivity : ComponentActivity() {
                                             tint = Color.Red,
                                             modifier = Modifier.size(36.dp)
                                         )
-                                    }
+                                    }}
                                 }
                             }
                         }
