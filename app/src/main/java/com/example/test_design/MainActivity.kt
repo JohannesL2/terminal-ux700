@@ -424,8 +424,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "$totalItems $productText",
@@ -434,6 +433,12 @@ class MainActivity : ComponentActivity() {
                         fontWeight = FontWeight.Bold
                     )
 
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                     Text(
                         text = "${cart.sumOf { it.product.price * it.quantity }} kr",
                         color = Color.White,
@@ -451,6 +456,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
         }
     }
 
