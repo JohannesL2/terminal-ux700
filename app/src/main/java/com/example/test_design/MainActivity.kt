@@ -404,16 +404,20 @@ class MainActivity : ComponentActivity() {
                 targetValue = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
                 )
 
+                val totalItems = cart.sumOf { it.quantity }
+                val productText = if (totalItems == 1) "produkt vald" else "produkter valda"
+
         if (cart.isNotEmpty()) {
             Card(
                 shape = RoundedCornerShape(50.dp),
                 colors = CardDefaults.cardColors(containerColor = cardColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(90.dp)
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
                     .clickable{navController.navigate("second") },
             ) {
                 Row(
@@ -424,7 +428,7 @@ class MainActivity : ComponentActivity() {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${cart.sumOf { it.quantity }} produkter valda",
+                        text = "$totalItems $productText",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
