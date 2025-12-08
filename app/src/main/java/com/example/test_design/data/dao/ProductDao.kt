@@ -66,6 +66,16 @@ interface ProductDao {
                 ean = generateEAN(),
                 articleNumber = generateArticleNumber(),
                 rowNumber = generateRowNumber()
+            ),
+            ProductEntity(
+                name = "Smoothie",
+                description =  "Fräsch och krämig smoothie med jordgubbar och banan.",
+                price = 45,
+                category = "Dryck",
+                imageResName = "Smoothie",
+                ean = generateEAN(),
+                articleNumber = generateArticleNumber(),
+                rowNumber = generateRowNumber()
             )
         )
 

@@ -107,6 +107,7 @@ import com.jakewharton.threetenabp.AndroidThreeTen
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.drawBehind
 import androidx.core.view.WindowCompat
@@ -175,6 +176,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+                    lifecycleScope.launch {
+                        dao.insertInitialProducts()
+                    }
                     }
                 }
             }
@@ -193,21 +197,16 @@ class MainActivity : ComponentActivity() {
         var showSellerLogin by remember { mutableStateOf(false) }
 
         val context = LocalContext.current
-        var dbProducts by remember { mutableStateOf(listOf<ProductEntity>()) }
+        val dbProducts by dao.getAllProducts().collectAsState(initial = emptyList())
 
         val haptic = LocalHapticFeedback.current
-
-        LaunchedEffect(Unit) {
-            dao.getAllProducts().collect { products ->
-                dbProducts = products
-            }
-        }
 
         val imageNameMap = mapOf(
             "Kaffe" to "coffee",
             "Latte" to "latte",
             "Kaka" to "cake",
-            "Smörgås" to "sandwich"
+            "Smörgås" to "sandwich",
+            "Smoothie" to "smoothie"
         )
 
         val allProducts = dbProducts.map { entity ->
@@ -392,7 +391,10 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(12.dp))
 
             LazyColumn(
-                contentPadding = PaddingValues(top = 8.dp),
+                contentPadding = PaddingValues(
+                    top = 8.dp,
+                    bottom = if (cart.isNotEmpty()) 100.dp else 8.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filteredProducts) { product ->
@@ -414,10 +416,10 @@ class MainActivity : ComponentActivity() {
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(90.dp)
+                    .height(60.dp)
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .padding(horizontal = 24.dp, vertical = 0.dp)
                     .clickable{navController.navigate("second") },
             ) {
                 Row(
@@ -451,7 +453,7 @@ class MainActivity : ComponentActivity() {
                                                     imageVector = Icons.Default.ShoppingCart,
                                                     contentDescription = "Kundvagn",
                                                     tint = Color.White,
-                                                    modifier = Modifier.size(32.dp)
+                                                    modifier = Modifier.size(40.dp)
                                                 )
                     }
                 }
@@ -586,105 +588,128 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
+                .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 0.dp)
             )
             {
+                Text(
+                    "Varukorg",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .padding(top = 16.dp, bottom = 8.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+
+                Spacer(Modifier.height(8.dp))
 
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                        .fillMaxSize()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Varukorg",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
 
-                CartSummary(cart)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    CartSummary(cart)
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { navController.navigate("pinScreen") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
-                        ),
-                        shape = RoundedCornerShape(0.dp),
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp),
-                        enabled = cart.isNotEmpty()
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = "Betala med kort",
-                                tint = Color.White,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+
+                            val total = cart.sumOf { it.product.price * it.quantity }
                             Text(
-                                text = "Betala med kort",
-                                fontSize = 20.sp,
+                                "Att Betala: $total kr",
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black,
+                                fontSize = 26.sp
+                            )
+
+                        Button(
+                            onClick = { navController.navigate("pinScreen") },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
+                            ),
+                            shape = RoundedCornerShape(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            enabled = cart.isNotEmpty()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ShoppingCart,
+                                    contentDescription = "Betala med kort",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Betala med kort",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { navController.navigate("pinScreen") },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
+                            ),
+                            shape = RoundedCornerShape(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            enabled = cart.isNotEmpty()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.swish_icon),
+                                    contentDescription = "Swish",
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Betala med Swish",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { navController.navigate("main") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF757575)),
+                            shape = RoundedCornerShape(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                        ) {
+                            Text(
+                                text = "Avbryt köp",
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-
-                    Button(
-                        onClick = { navController.navigate("pinScreen") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
-                        ),
-                        shape = RoundedCornerShape(0.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp),
-                        enabled = cart.isNotEmpty()
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.swish_icon),
-                                contentDescription = "Swish",
-                                modifier = Modifier
-                                    .size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Betala med Swish",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = { navController.navigate("main") },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF757575)),
-                        shape = RoundedCornerShape(0.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) { Text(text = "Avbryt köp", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -695,11 +720,9 @@ class MainActivity : ComponentActivity() {
         Card(
             shape = RoundedCornerShape(0.dp),
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.6f),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                .fillMaxWidth(),
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(0.dp)) {
                 if (cart.isEmpty()) {
                     Column(
                         modifier = Modifier
@@ -722,12 +745,17 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 } else {
+                    Box(modifier = Modifier
+                        .fillMaxSize()) {
 
                     LazyColumn(
+                        contentPadding = PaddingValues(
+                            top = 8.dp,
+                            bottom = 16.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(cart) { item ->
                             Card(
@@ -739,9 +767,8 @@ class MainActivity : ComponentActivity() {
                                     .padding(vertical = 6.dp)
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxSize()
                                 ) {
                                     Image(
                                         painter = painterResource(id = item.product.imageRes),
@@ -789,17 +816,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    val total = cart.sumOf { it.product.price * it.quantity }
-                    Text(
-                        "Att Betala: $total kr",
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black,
-                        fontSize = 26.sp
-                    )
                 }
             }
-        }
+        }}
     }
 
 
@@ -960,7 +979,6 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .height(50.dp)
-                    .align(Alignment.CenterHorizontally)
             ) {
                 Text(
                     text = "Avbryt köp",
