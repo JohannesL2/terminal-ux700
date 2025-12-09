@@ -816,6 +816,7 @@ class MainActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(500.dp)
                     ) {
                         items(cart) { item ->
                             Card(
