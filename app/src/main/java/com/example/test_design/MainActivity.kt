@@ -111,7 +111,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.core.view.WindowCompat
+import android.media.MediaPlayer
+import android.content.Context
 
 data class UiProduct(
     val name: String,
@@ -236,23 +239,19 @@ class MainActivity : ComponentActivity() {
                 .fillMaxSize()
         )
         {
+            Image(
+                painter = painterResource(id = R.drawable.background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .imePadding()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFFFFFFFF),
-                                Color(0xFFF5F5F5),
-                                Color(0xFFEFEFEF)
-                            ),
-                            start = Offset(0f, 0f),
-                            end = Offset(0f, Float.POSITIVE_INFINITY)
-                        )
-                    ),
+                    .imePadding(),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -415,7 +414,7 @@ class MainActivity : ComponentActivity() {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .padding(vertical = 24.dp)
+                    .padding(vertical = 64.dp)
             ) {
                 if (cart.isNotEmpty()) {
                     Card(
@@ -541,7 +540,10 @@ class MainActivity : ComponentActivity() {
                                         onClick = {showImageDialog = false},
                                         modifier = Modifier.align(Alignment.End)
                                     ) {
-                                        Icon(Icons.Default.Close, contentDescription = "Stäng")
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Stäng",
+                                            )
                                     }
 
                                     Image(
@@ -638,6 +640,13 @@ class MainActivity : ComponentActivity() {
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -659,7 +668,7 @@ class MainActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .height(300.dp),
+                        .height(80.dp),
                     contentAlignment = Alignment.Center
                 ) {
 
@@ -671,6 +680,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.BottomCenter)
+                            .background(Color(0xFFF5F5F5))
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -946,6 +956,8 @@ class MainActivity : ComponentActivity() {
                 listOf("⌫", "0", "OK")
             )
 
+            val context = LocalContext.current
+
             buttons.forEach { row ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -980,6 +992,7 @@ class MainActivity : ComponentActivity() {
                                     label == "⌫" && pin.isNotEmpty() -> pin = pin.dropLast(1)
                                     label == "OK" && pin.length == 4 -> {
                                         onPinEntered(pin)
+                                        playPaymentSound(context)
                                         showConfirmation = true
                                     }
 
@@ -1020,7 +1033,9 @@ class MainActivity : ComponentActivity() {
             var showCancelDialog by remember { mutableStateOf(false) }
 
             Button(
-                onClick = { showCancelDialog = true },
+                onClick = {
+                    showCancelDialog = true
+                          },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB0BEC5)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -1054,6 +1069,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("main") {
                                         popUpTo("main") { inclusive = true }
                                     }
+                                    playPaymentDeniedSound(context)
                                 }) {
                                     Text("Ja")
                                 }
@@ -1148,3 +1164,21 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+fun playPaymentSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.payment_success)
+    mediaPlayer.start()
+
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+}
+
+fun playPaymentDeniedSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.payment_denied)
+    mediaPlayer.start()
+
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+}
