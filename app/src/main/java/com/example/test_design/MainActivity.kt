@@ -1148,14 +1148,3 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-@Composable
-fun ProductModal(
-    ondismissRequest: () -> Unit,
-    onConfirmation: () -> Unit,
-    dialogTitle: String,
-    dialogText: String,
-    icon: ImageVector,
-) {
-
-}
