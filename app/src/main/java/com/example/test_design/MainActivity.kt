@@ -110,6 +110,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.view.WindowCompat
 
 data class UiProduct(
@@ -230,241 +231,250 @@ class MainActivity : ComponentActivity() {
             (selectedCategory == "Alla" || product.category == selectedCategory) &&
                     (searchQuery.isBlank() || product.name.contains(searchQuery, ignoreCase = true))
         }
-        Box (
+        Box(
             modifier = Modifier
                 .fillMaxSize()
         )
-            {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            Color(0xFFFFFFFF),
-                            Color(0xFFF5F5F5),
-                            Color(0xFFEFEFEF)
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(0f, Float.POSITIVE_INFINITY)
-                    )
-                ),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Sök produkter...", color = Color.Gray) },
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Sök",
-                            tint = Color.Gray
+        {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFFFFFFFF),
+                                Color(0xFFF5F5F5),
+                                Color(0xFFEFEFEF)
+                            ),
+                            start = Offset(0f, 0f),
+                            end = Offset(0f, Float.POSITIVE_INFINITY)
                         )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Rensa sökning",
-                                    tint = Color.Gray
+                    ),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Sök produkter...", color = Color.Gray) },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Sök",
+                                tint = Color.Gray
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Rensa sökning",
+                                        tint = Color.Gray
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(60.dp)
+                    )
+
+
+                    //IconButton(
+                    //                    onClick = {
+                    //                        navController.navigate("second")
+                    //                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    //                    },
+                    //                    modifier = Modifier
+                    //                        .size(70.dp)
+                    //                        .background(Color.Black)
+                    //                ) {
+                    //                    Icon(
+                    //                        imageVector = Icons.Default.ShoppingCart,
+                    //                        contentDescription = "Kundvagn",
+                    //                        tint = Color.White,
+                    //                        modifier = Modifier.size(36.dp)
+                    //                    )
+                    //                }
+                    IconButton(
+                        onClick = { showSellerLogin = true },
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(
+                                color = Color.Black
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = "Säljarlogin",
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+                //LÅS APPEN HELT NÄR DU SKRIVER IN DIN PIN HÄR,
+                // gör gärna en pin-kod som du kan testa med
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp, vertical = 6.dp)
+                ) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(end = 8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(categories) { category ->
+                            Button(
+                                onClick = { selectedCategory = category },
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedCategory == category) Color(
+                                        0xFF6200EE
+                                    ) else Color(
+                                        0xFFE0E0E0
+                                    )
+                                ),
+                                modifier = Modifier
+                                    .height(42.dp)
+                                    .defaultMinSize(minWidth = 80.dp)
+                            ) {
+                                Text(
+                                    category,
+                                    color = if (selectedCategory == category) Color.White else Color(
+                                        0xFF212121
+                                    ),
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
                                 )
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(60.dp)
-                )
-
-
-                //IconButton(
-                //                    onClick = {
-                //                        navController.navigate("second")
-                //                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                //                    },
-                //                    modifier = Modifier
-                //                        .size(70.dp)
-                //                        .background(Color.Black)
-                //                ) {
-                //                    Icon(
-                //                        imageVector = Icons.Default.ShoppingCart,
-                //                        contentDescription = "Kundvagn",
-                //                        tint = Color.White,
-                //                        modifier = Modifier.size(36.dp)
-                //                    )
-                //                }
-                IconButton(
-                    onClick = { showSellerLogin = true },
-                    modifier = Modifier
-                        .size(60.dp)
-                        .background(
-                            color = Color.Black
-                        ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Lock,
-                        contentDescription = "Säljarlogin",
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-            }
-            //LÅS APPEN HELT NÄR DU SKRIVER IN DIN PIN HÄR,
-            // gör gärna en pin-kod som du kan testa med
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 0.dp, vertical = 6.dp)
-            ) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    items(categories) { category ->
-                        Button(
-                            onClick = { selectedCategory = category },
-                            shape = RoundedCornerShape(24.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (selectedCategory == category) Color(0xFF6200EE) else Color(
-                                    0xFFE0E0E0
-                                )
-                            ),
-                            modifier = Modifier
-                                .height(42.dp)
-                                .defaultMinSize(minWidth = 80.dp)
-                        ) {
-                            Text(
-                                category,
-                                color = if (selectedCategory == category) Color.White else Color(
-                                    0xFF212121
-                                ),
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 //Gör en större lås ikon, kanske samma som kundvagnens bakgrund
 //men fördela dom så att man inte trycker fel
-                //IconButton(
-                //                    onClick = { showSellerLogin = true },
-                //                    modifier = Modifier
-                //                        .size(50.dp)
-                //                        .background(
-                //                            color = Color(0xFF6200EE)
-                //                        ),
-                //                ) {
-                //                    Icon(
-                //                        imageVector = Icons.Filled.Lock,
-                //                        contentDescription = "Säljarlogin",
-                //                        tint = Color(0xFFFFD700),
-                //                        modifier = Modifier.size(36.dp)
-                //                    )
-                //                }
+                    //IconButton(
+                    //                    onClick = { showSellerLogin = true },
+                    //                    modifier = Modifier
+                    //                        .size(50.dp)
+                    //                        .background(
+                    //                            color = Color(0xFF6200EE)
+                    //                        ),
+                    //                ) {
+                    //                    Icon(
+                    //                        imageVector = Icons.Filled.Lock,
+                    //                        contentDescription = "Säljarlogin",
+                    //                        tint = Color(0xFFFFD700),
+                    //                        modifier = Modifier.size(36.dp)
+                    //                    )
+                    //                }
 
-                if (showSellerLogin) {
-                    SellerLogin(
-                        navController = navController,
-                        onDismiss = { showSellerLogin = false },
-                        onPinVerified = { pin ->
-                            println("Säljar-PIN: $pin")
-                            showSellerLogin = false
-                        }
-                    )
+                    if (showSellerLogin) {
+                        SellerLogin(
+                            navController = navController,
+                            onDismiss = { showSellerLogin = false },
+                            onPinVerified = { pin ->
+                                println("Säljar-PIN: $pin")
+                                showSellerLogin = false
+                            }
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    top = 8.dp,
-                    bottom = if (cart.isNotEmpty()) 100.dp else 8.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredProducts) { product ->
-                    ProductCard(product, cart)
-                }
-            }
-        }
-                val cardColor by animateColorAsState(
-                targetValue = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
-                )
-
-                val totalItems = cart.sumOf { it.quantity }
-                val productText = if (totalItems == 1) "produkt vald" else "produkter valda"
-
-        if (cart.isNotEmpty()) {
-            Card(
-                shape = RoundedCornerShape(50.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 0.dp)
-                    .clickable{navController.navigate("second") },
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        top = 8.dp,
+                        bottom = if (cart.isNotEmpty()) 100.dp else 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "$totalItems $productText",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                    Text(
-                        text = "${cart.sumOf { it.product.price * it.quantity }} kr",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    //${cart.sumOf { it.product.price * it.quantity }} kr
-
-                        Icon(
-                                                    imageVector = Icons.Default.ShoppingCart,
-                                                    contentDescription = "Kundvagn",
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(40.dp)
-                                                )
+                    items(filteredProducts) { product ->
+                        ProductCard(product, cart)
                     }
                 }
             }
-        }
+            val cardColor by animateColorAsState(
+                targetValue = if (cart.isNotEmpty()) Color(0xFF6200EE) else Color.Gray
+            )
+
+            val totalItems = cart.sumOf { it.quantity }
+            val productText = if (totalItems == 1) "produkt vald" else "produkter valda"
+
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(vertical = 24.dp)
+            ) {
+                if (cart.isNotEmpty()) {
+                    Card(
+                        shape = RoundedCornerShape(50.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 24.dp, vertical = 0.dp)
+                            .clickable { navController.navigate("second") },
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .height(60.dp)
+                                .padding(horizontal = 20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$totalItems $productText",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "${cart.sumOf { it.product.price * it.quantity }} kr",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                //${cart.sumOf { it.product.price * it.quantity }} kr
+
+                                Icon(
+                                    imageVector = Icons.Default.ShoppingCart,
+                                    contentDescription = "Kundvagn",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-
     @Composable
     fun ProductCard(product: UiProduct, cart: SnapshotStateList<CartItem>) {
+        var showImageDialog by remember { mutableStateOf(false) }
+
         val cartItemIndex = cart.indexOfFirst { it.product.name == product.name }
         val quantity = if (cartItemIndex >= 0) cart[cartItemIndex].quantity else 0
 
@@ -490,6 +500,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(100.dp)
                         .clip(RoundedCornerShape(8.dp))
+                        .clickable {showImageDialog = true}
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -513,6 +524,42 @@ class MainActivity : ComponentActivity() {
                         color = Color(0xFF212121),
                         maxLines = 2
                     )
+
+                    if (showImageDialog) {
+                        Dialog(onDismissRequest = {showImageDialog = false}) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp)
+                                    .background(Color.White, RoundedCornerShape(16.dp))
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    IconButton(
+                                        onClick = {showImageDialog = false},
+                                        modifier = Modifier.align(Alignment.End)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Stäng")
+                                    }
+
+                                    Image(
+                                        painter = painterResource(id = product.imageRes),
+                                        contentDescription = product.name,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+
+                                    Spacer(Modifier.height(12.dp))
+
+                                    Text(product.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                    Text("${product.price} kr", fontSize = 18.sp)
+                                }
+                            }
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1048,7 +1095,7 @@ class MainActivity : ComponentActivity() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF1E1E2F))
+                .background(Color.Black)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -1078,7 +1125,7 @@ class MainActivity : ComponentActivity() {
                         "METOD: CHIP/PIN\n" +
                         "$formattedDateTime",
                 fontSize = 18.sp,
-                color = Color.White
+                color = Color.LightGray
             )
 
             Spacer(
@@ -1086,13 +1133,6 @@ class MainActivity : ComponentActivity() {
                     .height(24.dp)
             )
 
-            Text(
-                text = "TACK FÖR DITT KÖP!",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {
                     cart.clear()
@@ -1108,3 +1148,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+@Composable
+fun ProductModal(
+    ondismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+    dialogTitle: String,
+    dialogText: String,
+    icon: ImageVector,
+) {
+
+}
