@@ -115,6 +115,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.core.view.WindowCompat
 import android.media.MediaPlayer
 import android.content.Context
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.Build
 
 data class UiProduct(
     val name: String,
@@ -986,7 +989,12 @@ class MainActivity : ComponentActivity() {
 
                         Button(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                                } else {
+                                    vibrator.vibrate(50)
+                                }
 
                                 when {
                                     label == "⌫" && pin.isNotEmpty() -> pin = pin.dropLast(1)
